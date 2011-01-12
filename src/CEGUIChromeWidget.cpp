@@ -67,6 +67,16 @@ public:
         d_target->onPaint(win, sourceBuffer, sourceBufferRect, numCopyRects, copyRects, dx, dy, scrollRect);
     }
 
+    virtual void onUnresponsive(Window *win)
+    {
+        std::cout << "on unresponsive" << std::endl;
+    }
+
+    virtual void onResponsive(Window *win)
+    {
+        std::cout << "on responsive" << std::endl;
+    }
+
 private:
     ChromeWidget* d_target;
 };
@@ -416,8 +426,24 @@ void ChromeWidget::onPaint(
     d_ignorePartialPaint = false;
 }
 
+void ChromeWidget::onActivated(ActivationEventArgs& e)
+{
+    Window::onActivated(e);
+
+    d_chromeWindow->focus();
+}
+
+void ChromeWidget::onDeactivated(ActivationEventArgs& e)
+{
+    Window::onDeactivated(e);
+
+    d_chromeWindow->unfocus();
+}
+
 void ChromeWidget::onSized(WindowEventArgs& e)
 {
+    Window::onSized(e);
+
     if (d_renderingResizeDelay > 0)
     {
         d_renderingResizeTimer = 0.0f;
@@ -434,6 +460,8 @@ void ChromeWidget::onSized(WindowEventArgs& e)
 
 void ChromeWidget::onMouseMove(MouseEventArgs& e)
 {
+    Window::onMouseMove(e);
+
     if (d_interactionMode == IM_MouseOnlyInteraction ||
         d_interactionMode == IM_FullInteraction)
     {
@@ -451,6 +479,8 @@ void ChromeWidget::onMouseMove(MouseEventArgs& e)
 
 void ChromeWidget::onMouseButtonDown(MouseEventArgs& e)
 {
+    Window::onMouseButtonDown(e);
+
     if (d_interactionMode == IM_MouseOnlyInteraction ||
         d_interactionMode == IM_FullInteraction)
     {
@@ -471,6 +501,8 @@ void ChromeWidget::onMouseButtonDown(MouseEventArgs& e)
 
 void ChromeWidget::onMouseButtonUp(MouseEventArgs& e)
 {
+    Window::onMouseButtonUp(e);
+
     if (d_interactionMode == IM_MouseOnlyInteraction ||
         d_interactionMode == IM_FullInteraction)
     {
@@ -491,6 +523,11 @@ void ChromeWidget::onMouseButtonUp(MouseEventArgs& e)
 
 void ChromeWidget::updateSelf(float elapsed)
 {
+    Window::updateSelf(elapsed);
+
+    // sync Berkelium processes
+    ChromeSystem::update();
+
     if (d_renderingResizeDelay > 0.0 && d_renderingResizeTimer >= 0.0)
     {
         d_renderingResizeTimer += elapsed;

@@ -193,6 +193,12 @@ public:
         const Berkelium::Rect &scrollRect);
 
 protected:
+    //! \copydoc Window::onActivated
+    virtual void onActivated(ActivationEventArgs& e);
+
+    //! \copydoc Window::onDeactivated
+    virtual void onDeactivated(ActivationEventArgs& e);
+
     //! \copydoc Window::onSized
     virtual void onSized(WindowEventArgs& e);
 
