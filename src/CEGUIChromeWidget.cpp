@@ -327,24 +327,22 @@ void ChromeWidget::onPaint(
     }
 
     const Size alteredPixelSize = getPixelSize() * d_renderingDetailRatio;
-    const size_t destTextureWidth = static_cast<size_t>(floor(alteredPixelSize.d_width));
-    const size_t destTextureHeight = static_cast<size_t>(floor(alteredPixelSize.d_height));
+    const Size textureSize = d_renderOutputTexture->getSize();
 
     // modified from the GLUT demo from Berkelium source
 
     if (d_ignorePartialPaint)
     {
-        if (sourceBufferRect.left() != 0 ||
-            sourceBufferRect.top() != 0 ||
-            sourceBufferRect.right() != destTextureWidth ||
-            sourceBufferRect.bottom() != destTextureHeight)
+        if (sourceBufferRect.left() == 0 &&
+            sourceBufferRect.top() == 0 &&
+            sourceBufferRect.right() == static_cast<size_t>(floor(alteredPixelSize.d_width)) &&
+            sourceBufferRect.bottom() == static_cast<size_t>(floor(alteredPixelSize.d_height)))
         {
-            return;
+            d_renderOutputTexture->blitFromMemory(const_cast<unsigned char*>(sourceBuffer),
+                Rect(sourceBufferRect.left(), sourceBufferRect.top(), sourceBufferRect.right(), sourceBufferRect.bottom()));
+            d_ignorePartialPaint = false;
         }
 
-        d_renderOutputTexture->blitFromMemory(const_cast<unsigned char*>(sourceBuffer),
-            Rect(sourceBufferRect.left(), sourceBufferRect.top(), sourceBufferRect.right(), sourceBufferRect.bottom()));
-        d_ignorePartialPaint = false;
         return;
     }
 
@@ -369,7 +367,7 @@ void ChromeWidget::onPaint(
             char* outputBuffer = d_scrollBuffer;
             // source data is offset by 1 line to prevent memcpy aliasing
             // In this case, it can happen if dy == 0 and dx != 0.
-            char* inputBuffer = d_scrollBuffer + (destTextureWidth * 1 * bytesPerPixel);
+            char* inputBuffer = d_scrollBuffer + (static_cast<size_t>(textureSize.d_width) * 1 * bytesPerPixel);
             int jj = 0;
             if (dy > 0)
             {
@@ -377,15 +375,14 @@ void ChromeWidget::onPaint(
                 // extra row at the end, and then copy in reverse so that we
                 // don't clobber source data before copying it.
                 outputBuffer = d_scrollBuffer + (
-                    (scrolledSharedRect.top() + hig + 1) * destTextureWidth
+                    (scrolledSharedRect.top() + hig + 1) * static_cast<size_t>(textureSize.d_width)
                     - hig * wid) * bytesPerPixel;
                 inputBuffer = d_scrollBuffer;
                 inc = -1;
                 jj = hig-1;
             }
 
-            const Size textureSize = d_renderOutputTexture->getSize();
-            d_renderOutputTexture->blitToMemory(Rect(0, 0, destTextureWidth, destTextureHeight), static_cast<char*>(inputBuffer));
+            d_renderOutputTexture->blitToMemory(static_cast<char*>(inputBuffer));
 
             // Annoyingly, OpenGL doesn't provide convenient primitives, so
             // we manually copy out the region to the beginning of the
@@ -393,8 +390,8 @@ void ChromeWidget::onPaint(
             for(; jj < hig && jj >= 0; jj += inc) {
                 memcpy(
                     outputBuffer + (jj * wid) * bytesPerPixel,
-                    inputBuffer + (
-                        (scrolledSharedRect.top() + jj) * destTextureWidth
+                    inputBuffer +
+                        ((scrolledSharedRect.top() + jj) * static_cast<size_t>(textureSize.d_width)
                         + scrolledSharedRect.left()) * bytesPerPixel,
                     wid * bytesPerPixel
                 );
@@ -416,7 +413,7 @@ void ChromeWidget::onPaint(
                 d_scrollBuffer + jj * wid * bytesPerPixel,
                 sourceBuffer + (left + (jj + top) * sourceBufferRect.width()) * bytesPerPixel,
                 wid * bytesPerPixel
-                );
+            );
         }
 
         d_renderOutputTexture->blitFromMemory(d_scrollBuffer,
@@ -579,14 +576,15 @@ void ChromeWidget::resizeRenderingCanvas()
 
     if (!d_renderOutputTexture)
     {
-        d_renderOutputTexture = &renderer->createTexture(alteredPixelSize * (1.0f + d_renderingCanvasReserve));
+        const Size texSize = alteredPixelSize * (1.0f + d_renderingCanvasReserve);
+        d_renderOutputTexture = &renderer->createTexture(texSize);
+
+        delete [] d_scrollBuffer;
+        d_scrollBuffer = new char[texSize.d_width * (texSize.d_height + 1) * 4];
     }
 
     // 1, 1 to force a full redraw (we destroyed the old texture, so we lost all data)
     d_chromeWindow->resize(1, 1);
-
-    delete [] d_scrollBuffer;
-    d_scrollBuffer = new char[alteredPixelSize.d_width * (alteredPixelSize.d_height + 1) * 4];
 
     // I do floor(..) to ensure we never ever overflow our target texture
     d_chromeWindow->resize(floor(alteredPixelSize.d_width),
