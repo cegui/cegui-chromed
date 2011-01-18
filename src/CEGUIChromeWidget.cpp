@@ -45,7 +45,9 @@ namespace CEGUI
 {
 
 // the whole reason for this class is to avoid including Berkelium in the header
-class BerkeliumDelegate : public Berkelium::WindowDelegate
+class BerkeliumDelegate :
+    public Berkelium::WindowDelegate,
+    public AllocatedObject<BerkeliumDelegate>
 {
 public:
     BerkeliumDelegate(ChromeWidget* target):
@@ -95,27 +97,27 @@ ChromeWidget::ChromeWidget(const String& type, const String& name):
     d_renderingResizeNeeded(true),
 
     d_renderOutputTexture(0),
-    d_scrollBuffer(new char[1*(1+1)*4]),
+    d_scrollBuffer(CEGUI_NEW_ARRAY_PT(char, 1 * (1 + 1) * 4, AllocatorConfig<ChromeWidget>::Allocator)),
     d_ignorePartialPaint(true)
 {
     ChromeSystem::ensureInitialised();
 
     d_chromeWindow = Berkelium::Window::create(ChromeSystem::getContext());
-    d_berkeliumDelegate = new BerkeliumDelegate(this);
+    d_berkeliumDelegate = CEGUI_NEW_AO BerkeliumDelegate(this);
     d_chromeWindow->setDelegate(d_berkeliumDelegate);
     // this has to be done to ensure Berkelium paints at all
     // (ever, if you do this after navigate/loadContent, it won't work)
     d_chromeWindow->resize(1, 1);
 
     // property definition
-    CEGUI_DEFINE_PROPERTY((new TplProperty<ChromeWidget, InteractionMode>("InteractionMode", 
+    CEGUI_DEFINE_PROPERTY((CEGUI_NEW_AO TplProperty<ChromeWidget, InteractionMode>("InteractionMode", 
         "Allows to set whether the widget is interactive (reacts to mouse and keyboard input) or just visual.",
         &ChromeWidget::setInteractionMode,
         &ChromeWidget::getInteractionMode,
         IM_NoInteraction)
     ));
 
-    CEGUI_DEFINE_PROPERTY((new TplProperty<ChromeWidget, float>("RenderingDetailRatio",
+    CEGUI_DEFINE_PROPERTY((CEGUI_NEW_AO TplProperty<ChromeWidget, float>("RenderingDetailRatio",
         "Rendering detail ratio describes how big the chrome rendering canvas should be related "
         "to the widget's size. For example for ratio 2.0 the canvas will be 2x bigger than the actual widget's "
         "pixel size (this is not really practical), however with ratio 0.5 the canvase's sides will be 2x "
@@ -125,7 +127,7 @@ ChromeWidget::ChromeWidget(const String& type, const String& name):
         1.0f)
     ));
 
-    CEGUI_DEFINE_PROPERTY((new TplProperty<ChromeWidget, float>("RenderingResizeDelay",
+    CEGUI_DEFINE_PROPERTY((CEGUI_NEW_AO TplProperty<ChromeWidget, float>("RenderingResizeDelay",
         "Higher values will speed things like drag resizing but rendering can be distorted/of low quality at times. "
         "The default behaviour is to size the rendering the first time update is called and leave it (-1.0f value)",
         &ChromeWidget::setRenderingResizeDelay,
@@ -133,7 +135,7 @@ ChromeWidget::ChromeWidget(const String& type, const String& name):
         -1.0f)
     ));
 
-    CEGUI_DEFINE_PROPERTY((new TplProperty<ChromeWidget, float>("RenderingCanvasReserve",
+    CEGUI_DEFINE_PROPERTY((CEGUI_NEW_AO TplProperty<ChromeWidget, float>("RenderingCanvasReserve",
         "You want to leave this at 0.0 for widgets that will never resize, it helps to have reserve with often resizing widgets. "
         "Be aware that this must play well with RenderingCanvasOverhead because it his ratio is bigger than the allowed overhead, "
         "you will trigger an infinite loop! And you have to make sure that doesn't happen, there are no checks for this!!",
@@ -142,7 +144,7 @@ ChromeWidget::ChromeWidget(const String& type, const String& name):
         0.0f)
     ));
 
-    CEGUI_DEFINE_PROPERTY((new TplProperty<ChromeWidget, float>("RenderingCanvasMaxOverhead",
+    CEGUI_DEFINE_PROPERTY((CEGUI_NEW_AO TplProperty<ChromeWidget, float>("RenderingCanvasMaxOverhead",
         "Default is 0.2, meaning if the texture is 20% bigger than it should be (any of its sizes), we recreate it with a smaller size. "
         "Be aware that this must play well with RenderingCanvasOverhead because it his ratio is bigger than the allowed overhead, "
         "you will trigger an infinite loop! And you have to make sure that doesn't happen, there are no checks for this!!",
@@ -151,7 +153,7 @@ ChromeWidget::ChromeWidget(const String& type, const String& name):
         0.2f)
     ));
 
-    CEGUI_DEFINE_PROPERTY((new TplProperty<ChromeWidget, ColourRect>("ColourRect",
+    CEGUI_DEFINE_PROPERTY((CEGUI_NEW_AO TplProperty<ChromeWidget, ColourRect>("ColourRect",
         "sets the colour rect that will affect the rendering (just like any other CEGUI widget)",
         &ChromeWidget::setColourRect,
         &ChromeWidget::getColourRect,
@@ -168,13 +170,13 @@ ChromeWidget::~ChromeWidget()
     }
 
     d_chromeWindow->setDelegate(0);
-    delete d_berkeliumDelegate;
+    CEGUI_DELETE_AO d_berkeliumDelegate;
     d_berkeliumDelegate = 0;
 
-    delete d_chromeWindow;
+    CEGUI_DELETE_AO d_chromeWindow;
     d_chromeWindow = 0;
 
-    delete [] d_scrollBuffer;
+    CEGUI_DELETE_AO [] d_scrollBuffer;
     d_scrollBuffer = 0;
 }
 
@@ -551,12 +553,14 @@ void ChromeWidget::resizeRenderingCanvas()
 {
     //const Size pixelSize = getPixelSize();
     const Size alteredPixelSize = getPixelSize() * d_renderingDetailRatio;
-    
+    size_t oldScrollBufferSize = 1 * (1 + 1) * 4;
+
     Renderer* renderer = System::getSingleton().getRenderer();
 
     if (d_renderOutputTexture)
     {
         const Size size = d_renderOutputTexture->getSize();
+        oldScrollBufferSize = size.d_width * (size.d_height + 1) * 4;
 
         if (size.d_width < alteredPixelSize.d_width ||
             size.d_height < alteredPixelSize.d_height)
@@ -579,8 +583,8 @@ void ChromeWidget::resizeRenderingCanvas()
         const Size texSize = alteredPixelSize * (1.0f + d_renderingCanvasReserve);
         d_renderOutputTexture = &renderer->createTexture(texSize);
 
-        delete [] d_scrollBuffer;
-        d_scrollBuffer = new char[texSize.d_width * (texSize.d_height + 1) * 4];
+        CEGUI_DELETE_ARRAY_PT(d_scrollBuffer, char, oldScrollBufferSize, AllocatorConfig<ChromeWidget>::Allocator);
+        d_scrollBuffer = CEGUI_NEW_ARRAY_PT(char, texSize.d_width * (texSize.d_height + 1) * 4, AllocatorConfig<ChromeWidget>::Allocator);
     }
 
     // 1, 1 to force a full redraw (we destroyed the old texture, so we lost all data)
