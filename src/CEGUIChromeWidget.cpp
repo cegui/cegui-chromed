@@ -109,56 +109,58 @@ ChromeWidget::ChromeWidget(const String& type, const String& name):
     // (ever, if you do this after navigate/loadContent, it won't work)
     d_chromeWindow->resize(1, 1);
 
+    const String propertyOrigin("ChromeWidget");
+    
     // property definition
-    CEGUI_DEFINE_PROPERTY((CEGUI_NEW_AO TplProperty<ChromeWidget, InteractionMode>("InteractionMode", 
+    /*CEGUI_DEFINE_PROPERTY(ChromeWidget, InteractionMode, "InteractionMode", 
         "Allows to set whether the widget is interactive (reacts to mouse and keyboard input) or just visual.",
         &ChromeWidget::setInteractionMode,
         &ChromeWidget::getInteractionMode,
-        IM_NoInteraction)
-    ));
+        IM_NoInteraction
+    );*/
 
-    CEGUI_DEFINE_PROPERTY((CEGUI_NEW_AO TplProperty<ChromeWidget, float>("RenderingDetailRatio",
+    CEGUI_DEFINE_PROPERTY(ChromeWidget, float, "RenderingDetailRatio",
         "Rendering detail ratio describes how big the chrome rendering canvas should be related "
         "to the widget's size. For example for ratio 2.0 the canvas will be 2x bigger than the actual widget's "
         "pixel size (this is not really practical), however with ratio 0.5 the canvase's sides will be 2x "
         "smaller, resulting in 4x smaller area which can speed things up considerably",
         &ChromeWidget::setRenderingDetailRatio,
         &ChromeWidget::getRenderingDetailRatio,
-        1.0f)
-    ));
+        1.0f
+    );
 
-    CEGUI_DEFINE_PROPERTY((CEGUI_NEW_AO TplProperty<ChromeWidget, float>("RenderingResizeDelay",
+    CEGUI_DEFINE_PROPERTY(ChromeWidget, float, "RenderingResizeDelay",
         "Higher values will speed things like drag resizing but rendering can be distorted/of low quality at times. "
         "The default behaviour is to size the rendering the first time update is called and leave it (-1.0f value)",
         &ChromeWidget::setRenderingResizeDelay,
         &ChromeWidget::getRenderingResizeDelay,
-        -1.0f)
-    ));
+        -1.0f
+    );
 
-    CEGUI_DEFINE_PROPERTY((CEGUI_NEW_AO TplProperty<ChromeWidget, float>("RenderingCanvasReserve",
+    CEGUI_DEFINE_PROPERTY(ChromeWidget, float, "RenderingCanvasReserve",
         "You want to leave this at 0.0 for widgets that will never resize, it helps to have reserve with often resizing widgets. "
         "Be aware that this must play well with RenderingCanvasOverhead because it his ratio is bigger than the allowed overhead, "
         "you will trigger an infinite loop! And you have to make sure that doesn't happen, there are no checks for this!!",
         &ChromeWidget::setRenderingCanvasReserve,
         &ChromeWidget::getRenderingCanvasReserve,
-        0.0f)
-    ));
+        0.0f
+    );
 
-    CEGUI_DEFINE_PROPERTY((CEGUI_NEW_AO TplProperty<ChromeWidget, float>("RenderingCanvasMaxOverhead",
+    CEGUI_DEFINE_PROPERTY(ChromeWidget, float, "RenderingCanvasMaxOverhead",
         "Default is 0.2, meaning if the texture is 20% bigger than it should be (any of its sizes), we recreate it with a smaller size. "
         "Be aware that this must play well with RenderingCanvasOverhead because it his ratio is bigger than the allowed overhead, "
         "you will trigger an infinite loop! And you have to make sure that doesn't happen, there are no checks for this!!",
         &ChromeWidget::setRenderingCanvasMaxOverhead,
         &ChromeWidget::getRenderingCanvasMaxOverhead,
-        0.2f)
-    ));
+        0.2f
+    );
 
-    CEGUI_DEFINE_PROPERTY((CEGUI_NEW_AO TplProperty<ChromeWidget, ColourRect>("ColourRect",
+    CEGUI_DEFINE_PROPERTY(ChromeWidget, ColourRect, "ColourRect",
         "sets the colour rect that will affect the rendering (just like any other CEGUI widget)",
         &ChromeWidget::setColourRect,
         &ChromeWidget::getColourRect,
-        ColourRect(Colour(1, 1, 1, 1)))
-    ));
+        ColourRect(Colour(1, 1, 1, 1))
+    );
 }
 
 ChromeWidget::~ChromeWidget()
@@ -262,8 +264,8 @@ void ChromeWidget::populateGeometryBuffer()
 
     Vertex vbuffer[6];
 
-    Size pixelSize = getPixelSize();
-    const Size alteredPixelSize = pixelSize * d_renderingDetailRatio;
+    Sizef pixelSize = getPixelSize();
+    const Sizef alteredPixelSize = pixelSize * d_renderingDetailRatio;
 
     ColourRect colourRect(d_colourRect);
     colourRect.modulateAlpha(getEffectiveAlpha());
@@ -278,34 +280,34 @@ void ChromeWidget::populateGeometryBuffer()
     const float bottomUV = alteredPixelSize.d_height / d_renderOutputTexture->getSize().d_height;
 
     // vertex 0 - top left
-    vbuffer[0].position   = Vector3(0.0f, 0.0f, 0.0f);
+    vbuffer[0].position   = Vector3f(0.0f, 0.0f, 0.0f);
     vbuffer[0].colour_val = colourRect.d_top_left;
-    vbuffer[0].tex_coords = Vector2(0.0f, 0.0f);
+    vbuffer[0].tex_coords = Vector2f(0.0f, 0.0f);
 
     // vertex 1 - bottom left
-    vbuffer[1].position   = Vector3(0.0f, pixelSize.d_height, 0.0f);
+    vbuffer[1].position   = Vector3f(0.0f, pixelSize.d_height, 0.0f);
     vbuffer[1].colour_val = colourRect.d_bottom_left;
-    vbuffer[1].tex_coords = Vector2(0.0f, bottomUV);
+    vbuffer[1].tex_coords = Vector2f(0.0f, bottomUV);
 
     // vertex 2 - bottom right
-    vbuffer[2].position   = Vector3(pixelSize.d_width, pixelSize.d_height, 0.0f);
+    vbuffer[2].position   = Vector3f(pixelSize.d_width, pixelSize.d_height, 0.0f);
     vbuffer[2].colour_val = colourRect.d_bottom_right;
-    vbuffer[2].tex_coords = Vector2(rightUV, bottomUV);
+    vbuffer[2].tex_coords = Vector2f(rightUV, bottomUV);
 
     // vertex 3 - top right
-    vbuffer[3].position   = Vector3(pixelSize.d_width, 0.0f, 0.0f);
+    vbuffer[3].position   = Vector3f(pixelSize.d_width, 0.0f, 0.0f);
     vbuffer[3].colour_val = colourRect.d_top_right;
-    vbuffer[3].tex_coords = Vector2(rightUV, 0.0f);
+    vbuffer[3].tex_coords = Vector2f(rightUV, 0.0f);
 
     // vertex 4 - top left
-    vbuffer[4].position   = Vector3(0.0f, 0.0f, 0.0f);
+    vbuffer[4].position   = Vector3f(0.0f, 0.0f, 0.0f);
     vbuffer[4].colour_val = colourRect.d_top_left;
-    vbuffer[4].tex_coords = Vector2(0.0f, 0.0f);
+    vbuffer[4].tex_coords = Vector2f(0.0f, 0.0f);
 
     // vertex 5 - bottom right
-    vbuffer[5].position   = Vector3(pixelSize.d_width, pixelSize.d_height, 0.0f);
+    vbuffer[5].position   = Vector3f(pixelSize.d_width, pixelSize.d_height, 0.0f);
     vbuffer[5].colour_val = colourRect.d_bottom_right;
-    vbuffer[5].tex_coords = Vector2(rightUV, bottomUV);
+    vbuffer[5].tex_coords = Vector2f(rightUV, bottomUV);
 
     d_geometry->reset();
     d_geometry->setActiveTexture(d_renderOutputTexture);
@@ -328,8 +330,8 @@ void ChromeWidget::onPaint(
         resizeRenderingCanvas();
     }
 
-    const Size alteredPixelSize = getPixelSize() * d_renderingDetailRatio;
-    const Size textureSize = d_renderOutputTexture->getSize();
+    const Sizef alteredPixelSize = getPixelSize() * d_renderingDetailRatio;
+    const Sizef textureSize = d_renderOutputTexture->getSize();
 
     // modified from the GLUT demo from Berkelium source
 
@@ -341,7 +343,7 @@ void ChromeWidget::onPaint(
             sourceBufferRect.bottom() == static_cast<size_t>(floor(alteredPixelSize.d_height)))
         {
             d_renderOutputTexture->blitFromMemory(const_cast<unsigned char*>(sourceBuffer),
-                Rect(sourceBufferRect.left(), sourceBufferRect.top(), sourceBufferRect.right(), sourceBufferRect.bottom()));
+                Rectf(sourceBufferRect.left(), sourceBufferRect.top(), sourceBufferRect.right(), sourceBufferRect.bottom()));
             d_ignorePartialPaint = false;
         }
 
@@ -400,7 +402,7 @@ void ChromeWidget::onPaint(
             }
 
             d_renderOutputTexture->blitFromMemory(outputBuffer,
-                Rect(sharedRect.left(), sharedRect.top(), sharedRect.right(), sharedRect.bottom()));
+                Rectf(sharedRect.left(), sharedRect.top(), sharedRect.right(), sharedRect.bottom()));
         }
     }
     
@@ -419,7 +421,7 @@ void ChromeWidget::onPaint(
         }
 
         d_renderOutputTexture->blitFromMemory(d_scrollBuffer,
-            Rect(copyRects[i].left(), copyRects[i].top(), copyRects[i].right(), copyRects[i].bottom()));
+            Rectf(copyRects[i].left(), copyRects[i].top(), copyRects[i].right(), copyRects[i].bottom()));
     }
 
     d_ignorePartialPaint = false;
@@ -466,7 +468,7 @@ void ChromeWidget::onMouseMove(MouseEventArgs& e)
     {
         // we have to substract the absolute widget position from the absolute mouse position
         // to get the relative mouse position
-        Vector2 mousePosition(e.position - getUnclippedInnerRect().getPosition());
+        Vector2f mousePosition(e.position - getUnclippedInnerRect().getPosition());
 
         // fix up the position if render output size and real widget size differ
         mousePosition.d_x *= d_renderingDetailRatio;
@@ -552,14 +554,14 @@ void ChromeWidget::drawSelf(const RenderingContext& ctx)
 void ChromeWidget::resizeRenderingCanvas()
 {
     //const Size pixelSize = getPixelSize();
-    const Size alteredPixelSize = getPixelSize() * d_renderingDetailRatio;
+    const Sizef alteredPixelSize = getPixelSize() * d_renderingDetailRatio;
     size_t oldScrollBufferSize = 1 * (1 + 1) * 4;
 
     Renderer* renderer = System::getSingleton().getRenderer();
 
     if (d_renderOutputTexture)
     {
-        const Size size = d_renderOutputTexture->getSize();
+        const Sizef size = d_renderOutputTexture->getSize();
         oldScrollBufferSize = size.d_width * (size.d_height + 1) * 4;
 
         if (size.d_width < alteredPixelSize.d_width ||
@@ -580,11 +582,12 @@ void ChromeWidget::resizeRenderingCanvas()
 
     if (!d_renderOutputTexture)
     {
-        const Size texSize = alteredPixelSize * (1.0f + d_renderingCanvasReserve);
-        d_renderOutputTexture = &renderer->createTexture(texSize);
+        const Sizef texSize = alteredPixelSize * (1.0f + d_renderingCanvasReserve);
+        d_renderOutputTexture = &renderer->createTexture(getName() + "/Texture", texSize);
 
         CEGUI_DELETE_ARRAY_PT(d_scrollBuffer, char, oldScrollBufferSize, AllocatorConfig<ChromeWidget>::Allocator);
-        d_scrollBuffer = CEGUI_NEW_ARRAY_PT(char, texSize.d_width * (texSize.d_height + 1) * 4, AllocatorConfig<ChromeWidget>::Allocator);
+        // FIXME: Size<int>
+        d_scrollBuffer = CEGUI_NEW_ARRAY_PT(char, static_cast<unsigned int>(texSize.d_width * (texSize.d_height + 1) * 4), AllocatorConfig<ChromeWidget>::Allocator);
     }
 
     // 1, 1 to force a full redraw (we destroyed the old texture, so we lost all data)
