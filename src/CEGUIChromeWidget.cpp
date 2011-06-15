@@ -112,12 +112,12 @@ ChromeWidget::ChromeWidget(const String& type, const String& name):
     const String propertyOrigin("ChromeWidget");
     
     // property definition
-    /*CEGUI_DEFINE_PROPERTY(ChromeWidget, InteractionMode, "InteractionMode", 
+    CEGUI_DEFINE_PROPERTY(ChromeWidget, InteractionMode, "InteractionMode", 
         "Allows to set whether the widget is interactive (reacts to mouse and keyboard input) or just visual.",
         &ChromeWidget::setInteractionMode,
         &ChromeWidget::getInteractionMode,
         IM_NoInteraction
-    );*/
+    );
 
     CEGUI_DEFINE_PROPERTY(ChromeWidget, float, "RenderingDetailRatio",
         "Rendering detail ratio describes how big the chrome rendering canvas should be related "

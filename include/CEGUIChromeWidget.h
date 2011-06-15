@@ -279,6 +279,7 @@ class PropertyHelper<ChromeWidget::InteractionMode>
 {
 public:
     typedef ChromeWidget::InteractionMode return_type;
+    typedef ChromeWidget::InteractionMode safe_method_return_type;
     typedef ChromeWidget::InteractionMode pass_type;
     typedef String string_return_type;
 
